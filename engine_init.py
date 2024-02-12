@@ -45,6 +45,9 @@ class Engine:
         pg.event.set_grab(True)
         pg.mouse.set_visible(False)
 
+        pg.event.set_grab(True)
+        pg.mouse.set_visible(False)
+
         self.ctx: mgl.Context = mgl.create_context()
         self.ctx.enable(flags=mgl.DEPTH_TEST | mgl.CULL_FACE)
         self.ctx.gc_mode = 'auto'
