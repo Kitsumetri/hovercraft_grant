@@ -15,6 +15,9 @@ class Camera:
         self.yaw: float = yaw
         self.pitch: float = pitch
 
+        self.standard_speed: float = SPEED
+        self.high_speed: float = SPEED * 10
+
         self.m_view: glm.mat4x4 = self.get_view_matrix()
         self.m_proj: glm.mat4x4 = self.get_projection_matrix()
 
@@ -43,9 +46,11 @@ class Camera:
         self.m_view = self.get_view_matrix()
 
     def move(self) -> None:
-        velocity = SPEED * self.app.delta_time
-
         keys = pg.key.get_pressed()
+
+        velocity = self.standard_speed if not keys[pg.K_SPACE] else self.high_speed
+
+        velocity *= self.app.delta_time
         if keys[pg.K_w]:
             self.position += self.forward * velocity
         if keys[pg.K_s]:

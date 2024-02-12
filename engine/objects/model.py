@@ -9,7 +9,7 @@ class BaseModel:
     def __init__(self, app, vao_name: str, tex_id: str,
                  pos: Tuple[int, int, int] = (0, 0, 0),
                  rot: Tuple[int, int, int] = (0, 0, 0),
-                 scale: Tuple[int, int, int] = (1, 1, 1)):
+                 scale: Tuple[float, float, float] = (1, 1, 1)):
 
         self.app = app
         self.pos: Tuple[int, int, int] = pos
@@ -24,11 +24,10 @@ class BaseModel:
 
         self.texture: Texture | None = None
 
-    def update(self) -> None:
-        pass
+    def update(self) -> None: ...
 
     def get_model_matrix(self) -> glm.mat4x4:
-        m_model: glm.mat4 = glm.mat4()
+        m_model: glm.mat4x4 = glm.mat4()
 
         m_model: glm.mat4x4 = glm.translate(m_model, self.pos)
 
@@ -39,14 +38,16 @@ class BaseModel:
         m_model: glm.mat4x4 = glm.scale(m_model, self.scale)
         return m_model
 
-    def render(self):
+    def render(self) -> None:
         self.update()
         self.vao.render()
 
 
 class ExtendedBaseModel(BaseModel):
     def __init__(self, app, vao_name: str, tex_id: str,
-                 pos: Tuple[int, int, int], rot: Tuple[int, int, int], scale: Tuple[int, int, int]):
+                 pos: Tuple[int, int, int] = (0, 0, 0),
+                 rot: Tuple[int, int, int] = (0, 0, 0),
+                 scale: Tuple[float, float, float] = (1, 1, 1)):
         super().__init__(app, vao_name, tex_id, pos, rot, scale)
         self.on_init()
 
@@ -57,34 +58,17 @@ class ExtendedBaseModel(BaseModel):
         self.program['m_model'].write(self.m_model)
 
     def update_shadow(self):
-        self.shadow_program['m_model'].write(self.m_model)
-
-    def render_shadow(self):
-        self.update_shadow()
-        self.shadow_vao.render()
+        self.program['m_model'].write(self.m_model)
 
     def on_init(self):
-        self.program['m_view_light'].write(self.app.light.m_view_light)
-
-        # resolution
-        self.program['u_resolution'].write(glm.vec2((self.app.screen_w, self.app.screen_h)))
-
-        # depth texture
-        self.depth_texture: mgl.Texture = self.app.mesh.texture.textures['depth_texture']
-        self.program['shadowMap'] = 1
-        self.depth_texture.use(location=1)
-
-        # shadow
-        self.shadow_vao: mgl.VertexArray = self.app.mesh.vao.vaos['shadow_' + self.vao_name]
-        self.shadow_program: mgl.Program = self.shadow_vao.program
-        self.shadow_program['m_proj'].write(self.camera.m_proj)
-        self.shadow_program['m_view_light'].write(self.app.light.m_view_light)
-        self.shadow_program['m_model'].write(self.m_model)
 
         # texture
-        self.texture: mgl.Texture = self.app.mesh.texture.textures[self.tex_id]
+        self.texture = self.app.mesh.texture.textures[self.tex_id]
         self.program['u_texture_0'] = 0
         self.texture.use(location=0)
+
+        self.depth_texture = self.app.mesh.texture.textures['depth_texture']
+        self.depth_texture.use(location=1)
 
         # mvp
         self.program['m_proj'].write(self.camera.m_proj)
@@ -118,6 +102,8 @@ class SkyBox(BaseModel):
 
 
 class Hovercraft(ExtendedBaseModel):
-    def __init__(self, app, vao_name='cat', tex_id='cat',
+    def __init__(self, app, vao_name='hovercraft', tex_id='hovercraft',
                  pos=(0, 0, 0), rot=(-90, 0, 0), scale=(1, 1, 1)):
         super().__init__(app, vao_name, tex_id, pos, rot, scale)
+
+

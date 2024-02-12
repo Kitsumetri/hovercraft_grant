@@ -10,13 +10,13 @@ class VAO:
         self.program = ShaderProgram(ctx)
         self.vaos = dict()
 
+        self.vaos['hovercraft'] = self.get_vao(
+            program=self.program.programs['default'],
+            vbo=self.vbo.vbos['hovercraft'])
+
         self.vaos['skybox'] = self.get_vao(
             program=self.program.programs['skybox'],
             vbo=self.vbo.vbos['skybox'])
-
-        # self.vaos['hovercraft'] = self.get_vao(
-         #   program=self.program.programs['default'],
-         #   vbo=self.vbo.vbos['hovercraft'])
 
     def get_vao(self, program: mgl.Program, vbo: BaseVBO) -> mgl.VertexArray:
         return self.ctx.vertex_array(program,

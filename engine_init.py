@@ -60,9 +60,6 @@ class Engine:
             if event.type == pg.QUIT or (event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE):
                 self.is_running = False
 
-    def draw(self) -> None:
-        pass
-
     def fps(self) -> None:
         self.delta_time = self.clock.tick(60)
         fps = str((self.clock.get_fps()))
@@ -82,7 +79,6 @@ class Engine:
     def run(self) -> NoReturn:
         while self.is_running:
             self.check_events()
-            self.draw()
             self.update()
             self.fps()
         else:

@@ -7,6 +7,7 @@ class ShaderProgram:
         self.ctx: mgl.Context = ctx
         self.programs: Dict[str, mgl.Program] = dict()
 
+        self.programs.update({'default': self.get_program('default')})
         self.programs.update({'skybox': self.get_program('skybox')})
 
     def get_program(self, shader_name: str) -> mgl.Program:

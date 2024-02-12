@@ -8,7 +8,7 @@ class VBO_List:
     def __init__(self, ctx: mgl.Context) -> None:
         self.vbos: Dict[str, BaseVBO] = dict()
         self.vbos.update({'skybox': SkyBoxVBO(ctx)})
-        # self.vbos.update({'hovercraft': HovercraftVBO(ctx)})
+        self.vbos.update({'hovercraft': HovercraftVBO(ctx)})
 
     def release(self):
         [vbo.release() for vbo in self.vbos.values()]
@@ -75,10 +75,11 @@ class SkyBoxVBO(BaseVBO):
 class HovercraftVBO(BaseVBO):
     def __init__(self, app):
         super().__init__(app)
-        self.format: str = '2f 3f 3f'
+        self.format: str = '3f 2f 3f'
         self.attribs: List[str] = ['in_texcoord_0', 'in_normal', 'in_position']
 
     def get_vertex_data(self) -> np.array:
-        objs: Wavefront = Wavefront('assets/obj/Hovercraft/hovercraft.obj', cache=True, parse=True)
+        objs: Wavefront = Wavefront('assets/obj/Hovercraft/12219_boat_v2_L2.obj', cache=True, parse=True)
+        print(objs.materials)
         obj = objs.materials.popitem()[1]
         return np.array(obj.vertices, dtype='f4')

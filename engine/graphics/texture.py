@@ -7,9 +7,30 @@ class Texture:
     def __init__(self, app):
         self.app = app
         self.ctx: mgl.Context = app.ctx
-        self.textures: Dict[str, mgl.TextureCube] = dict()
+        self.textures: Dict[str, mgl.Texture | mgl.TextureCube] = dict()
         self.textures['skybox'] = self.get_texture_cube(dir_path='engine/graphics/textures/skybox/',
                                                         ext='png')
+
+        self.textures['hovercraft'] = self.get_texture(path='assets/obj/Hovercraft/boat_body_diffuse.jpg')
+        self.textures['depth_texture'] = self.get_depth_texture()
+
+    def get_texture(self, path):
+        texture = pg.image.load(path).convert()
+        texture = pg.transform.flip(texture, flip_x=False, flip_y=True)
+        texture = self.ctx.texture(size=texture.get_size(), components=3,
+                                   data=pg.image.tostring(texture, 'RGB'))
+        # mipmaps
+        texture.filter = (mgl.LINEAR_MIPMAP_LINEAR, mgl.LINEAR)
+        texture.build_mipmaps()
+        # AF
+        texture.anisotropy = 32.0
+        return texture
+
+    def get_depth_texture(self):
+        depth_texture = self.ctx.depth_texture((self.app.screen_w, self.app.screen_h))
+        depth_texture.repeat_x = False
+        depth_texture.repeat_y = False
+        return depth_texture
 
     def get_texture_cube(self, dir_path: str, ext: str = 'png') -> mgl.TextureCube:
         faces: List[str] = ['right', 'left', 'top', 'bottom'] + ['front', 'back'][::-1]
