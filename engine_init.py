@@ -1,8 +1,8 @@
 import pygame as pg
 import moderngl as mgl
 
-from pygame.math import Vector2 as vec2
 from sys import stderr
+from pygame.math import Vector2 as vec2
 from typing import NoReturn
 from platform import system
 from engine.meshes.mesh import Mesh
@@ -41,7 +41,6 @@ class Engine:
 
         pg.event.set_grab(True)
         pg.mouse.set_visible(False)
-
 
         self.ctx: mgl.Context = mgl.create_context()
         self.ctx.enable(flags=mgl.DEPTH_TEST | mgl.CULL_FACE)

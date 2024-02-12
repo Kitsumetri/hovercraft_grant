@@ -4,29 +4,28 @@ from typing import List, Tuple, Dict
 
 
 class Texture:
-    def __init__(self, app):
+    def __init__(self, app) -> None:
         self.app = app
         self.ctx: mgl.Context = app.ctx
         self.textures: Dict[str, mgl.Texture | mgl.TextureCube] = dict()
         self.textures['skybox'] = self.get_texture_cube(dir_path='engine/graphics/textures/skybox/',
                                                         ext='png')
 
-        self.textures['hovercraft'] = self.get_texture(path='assets/obj/Hovercraft/boat_body_diffuse.jpg')
+        self.textures['hovercraft'] = self.get_texture(path='engine/graphics/assets/obj/Hovecraft2/metal.jpg')
         self.textures['depth_texture'] = self.get_depth_texture()
 
-    def get_texture(self, path):
+    def get_texture(self, path) -> mgl.Texture:
         texture = pg.image.load(path).convert()
         texture = pg.transform.flip(texture, flip_x=False, flip_y=True)
         texture = self.ctx.texture(size=texture.get_size(), components=3,
                                    data=pg.image.tostring(texture, 'RGB'))
-        # mipmaps
+
         texture.filter = (mgl.LINEAR_MIPMAP_LINEAR, mgl.LINEAR)
         texture.build_mipmaps()
-        # AF
         texture.anisotropy = 32.0
         return texture
 
-    def get_depth_texture(self):
+    def get_depth_texture(self) -> mgl.Texture:
         depth_texture = self.ctx.depth_texture((self.app.screen_w, self.app.screen_h))
         depth_texture.repeat_x = False
         depth_texture.repeat_y = False

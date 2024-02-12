@@ -8,9 +8,12 @@ class Scene:
         self.objects: List[BaseModel] = list()
         self.load()
 
-    def load(self):
+    def load(self) -> None:
         self.objects.append(SkyBox(self.app))
-        self.objects.append(Hovercraft(self.app, scale=(0.001, 0.001, 0.001)))
+        self.objects.append(Hovercraft(self.app,
+                                       scale=(0.1, 0.1, 0.1),
+                                       rot=(0, 0, 0),
+                                       pos=(0, -1, 0)))
 
-    def render(self):
+    def render(self) -> None:
         [obj.render() for obj in self.objects]

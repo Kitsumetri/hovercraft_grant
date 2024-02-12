@@ -49,6 +49,7 @@ class ExtendedBaseModel(BaseModel):
                  rot: Tuple[int, int, int] = (0, 0, 0),
                  scale: Tuple[float, float, float] = (1, 1, 1)):
         super().__init__(app, vao_name, tex_id, pos, rot, scale)
+        self.depth_texture = None
         self.on_init()
 
     def update(self):
