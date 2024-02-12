@@ -1,5 +1,10 @@
 ﻿# hovercraft_grant
 
+## Dependencies
+```
+Python 3.1.*
+```
+
 ## Windows quick build (Command Line):
 ```commandline
 git clone https://github.com/Kitsumetri/hovercraft_grant.git
