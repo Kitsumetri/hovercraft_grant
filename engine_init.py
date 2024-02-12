@@ -4,7 +4,7 @@ import moderngl as mgl
 from pygame.math import Vector2 as vec2
 from sys import stderr
 from typing import NoReturn
-from engine.shaders.shader_program import ShaderProgram
+from platform import system
 from engine.meshes.mesh import Mesh
 from engine.scenes.scene import Scene
 from engine.objects.camera import Camera
@@ -27,16 +27,20 @@ class Engine:
         self.time = 0
         self.delta_time = 0
 
-        self.screen: pg.Surface = pg.display.set_mode(self.resolution,
-                                                      flags=pg.OPENGL | pg.DOUBLEBUF)
-
         pg.event.set_grab(True)
         pg.mouse.set_visible(False)
 
         pg.display.gl_set_attribute(pg.GL_CONTEXT_MAJOR_VERSION, 3)
         pg.display.gl_set_attribute(pg.GL_CONTEXT_MINOR_VERSION, 3)
         pg.display.gl_set_attribute(pg.GL_CONTEXT_PROFILE_MASK, pg.GL_CONTEXT_PROFILE_CORE)
+
+        if system() == 'Darwin':
+            pg.display.gl_set_attribute(pg.GL_CONTEXT_FORWARD_COMPATIBLE_FLAG, True)
+
         pg.display.gl_set_attribute(pg.GL_DEPTH_SIZE, 24)
+
+        self.screen: pg.Surface = pg.display.set_mode(self.resolution,
+                                                      flags=pg.OPENGL | pg.DOUBLEBUF)
 
         self.ctx: mgl.Context = mgl.create_context()
         self.ctx.enable(flags=mgl.DEPTH_TEST | mgl.CULL_FACE)
