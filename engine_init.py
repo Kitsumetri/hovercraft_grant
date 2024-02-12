@@ -27,9 +27,6 @@ class Engine:
         self.time = 0
         self.delta_time = 0
 
-        pg.event.set_grab(True)
-        pg.mouse.set_visible(False)
-
         pg.display.gl_set_attribute(pg.GL_CONTEXT_MAJOR_VERSION, 3)
         pg.display.gl_set_attribute(pg.GL_CONTEXT_MINOR_VERSION, 3)
         pg.display.gl_set_attribute(pg.GL_CONTEXT_PROFILE_MASK, pg.GL_CONTEXT_PROFILE_CORE)
@@ -45,8 +42,6 @@ class Engine:
         pg.event.set_grab(True)
         pg.mouse.set_visible(False)
 
-        pg.event.set_grab(True)
-        pg.mouse.set_visible(False)
 
         self.ctx: mgl.Context = mgl.create_context()
         self.ctx.enable(flags=mgl.DEPTH_TEST | mgl.CULL_FACE)
