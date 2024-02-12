@@ -42,6 +42,9 @@ class Engine:
         self.screen: pg.Surface = pg.display.set_mode(self.resolution,
                                                       flags=pg.OPENGL | pg.DOUBLEBUF)
 
+        pg.event.set_grab(True)
+        pg.mouse.set_visible(False)
+
         self.ctx: mgl.Context = mgl.create_context()
         self.ctx.enable(flags=mgl.DEPTH_TEST | mgl.CULL_FACE)
         self.ctx.gc_mode = 'auto'
