@@ -1,4 +1,4 @@
-from engine.objects.model import SkyBox, Hovercraft, BaseModel
+from engine3d.objects.model import SkyBox, Hovercraft, BaseModel
 from typing import List
 
 

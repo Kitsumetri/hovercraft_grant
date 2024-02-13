@@ -1,5 +1,5 @@
-from engine.graphics.texture import Texture
-from engine.objects.vao import VAO
+from engine3d.graphics.texture import Texture
+from engine3d.objects.vao import VAO
 
 
 class Mesh:

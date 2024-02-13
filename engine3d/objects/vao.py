@@ -1,5 +1,5 @@
-from engine.objects.vbo import VBO_List, BaseVBO
-from engine.shaders.shader_program import ShaderProgram
+from engine3d.objects.vbo import VBO_List, BaseVBO
+from engine3d.shaders.shader_program import ShaderProgram
 import moderngl as mgl
 
 

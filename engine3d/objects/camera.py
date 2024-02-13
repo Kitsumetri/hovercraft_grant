@@ -1,6 +1,6 @@
 import glm
 import pygame as pg
-from engine.utils.constants import *
+from engine3d.utils.constants import *
 
 
 class Camera:

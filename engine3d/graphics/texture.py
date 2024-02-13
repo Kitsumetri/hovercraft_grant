@@ -8,10 +8,10 @@ class Texture:
         self.app = app
         self.ctx: mgl.Context = app.ctx
         self.textures: Dict[str, mgl.Texture | mgl.TextureCube] = dict()
-        self.textures['skybox'] = self.get_texture_cube(dir_path='engine/graphics/textures/skybox/',
+        self.textures['skybox'] = self.get_texture_cube(dir_path='engine3d/graphics/textures/skybox/',
                                                         ext='png')
 
-        self.textures['hovercraft'] = self.get_texture(path='engine/graphics/assets/obj/Hovecraft2/metal.jpg')
+        self.textures['hovercraft'] = self.get_texture(path='engine3d/graphics/assets/obj/Hovecraft2/metal.jpg')
         self.textures['depth_texture'] = self.get_depth_texture()
 
     def get_texture(self, path) -> mgl.Texture:

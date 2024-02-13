@@ -60,7 +60,7 @@ class HovercraftVBO(BaseVBO):
         self.attribs: List[str] = ['in_texcoord_0', 'in_normal', 'in_position']
 
     def get_vertex_data(self) -> np.array:
-        objs: Wavefront = Wavefront('engine/graphics/assets/obj/Hovecraft2/1.obj',
+        objs: Wavefront = Wavefront('engine3d/graphics/assets/obj/Hovecraft2/1.obj',
                                     create_materials=True, cache=True, parse=True)
         vertices: List[np.array] = list()
         for obj in objs.materials.values():

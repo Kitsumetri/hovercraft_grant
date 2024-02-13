@@ -11,10 +11,10 @@ class ShaderProgram:
         self.programs.update({'skybox': self.get_program('skybox')})
 
     def get_program(self, shader_name: str) -> mgl.Program:
-        with open(f"engine/shaders/verts/{shader_name}.vert") as vert_file:
+        with open(f"engine3d/shaders/verts/{shader_name}.vert") as vert_file:
             vertex_shader = vert_file.read()
 
-        with open(f"engine/shaders/frags/{shader_name}.frag") as frag_file:
+        with open(f"engine3d/shaders/frags/{shader_name}.frag") as frag_file:
             fragment_shader = frag_file.read()
 
         program = self.ctx.program(vertex_shader=vertex_shader,

@@ -1,8 +1,8 @@
 import moderngl as mgl
 import glm
 from typing import Tuple
-from engine.objects.camera import Camera
-from engine.graphics.texture import Texture
+from engine3d.objects.camera import Camera
+from engine3d.graphics.texture import Texture
 
 
 class BaseModel:
