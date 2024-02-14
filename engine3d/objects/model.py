@@ -1,5 +1,6 @@
 import moderngl as mgl
 import glm
+import pygame as pg
 from typing import Tuple
 from engine3d.objects.camera import Camera
 from engine3d.graphics.texture import Texture
@@ -12,10 +13,10 @@ class BaseModel:
                  scale: Tuple[float, float, float] = (1, 1, 1)):
 
         self.app = app
-        self.pos: Tuple[int, int, int] = pos
+        self.pos: glm.vec3 = glm.vec3(pos)
         self.vao_name: str = vao_name
         self.rot: glm.vec3 = glm.vec3([glm.radians(a) for a in rot])
-        self.scale: Tuple[int, int, int] = scale
+        self.scale: Tuple[float, float, float] = scale
         self.m_model: glm.mat4x4 = self.get_model_matrix()
         self.tex_id: str = tex_id
         self.vao: mgl.VertexArray = app.mesh.vao.vaos[vao_name]
@@ -102,9 +103,62 @@ class SkyBox(BaseModel):
         self.program['m_view'].write(glm.mat4(glm.mat3(self.camera.m_view)))
 
 
+class Cube(ExtendedBaseModel):
+    def __init__(self, app, vao_name='cube', tex_id=0, pos=(0, 0, 0), rot=(0, 0, 0), scale=(1, 1, 1)):
+        super().__init__(app, vao_name, tex_id, pos, rot, scale)
+
+
 class Hovercraft(ExtendedBaseModel):
     def __init__(self, app, vao_name='hovercraft', tex_id='hovercraft',
                  pos=(0, 0, 0), rot=(-90, 0, 0), scale=(1, 1, 1)):
         super().__init__(app, vao_name, tex_id, pos, rot, scale)
+        self.velocity = glm.vec3(0, 0, 0)  # Текущая скорость
+        self.acceleration = 0.01  # Ускорение
+        self.max_speed = 0.5  # Максимальная скорость
+        self.brake_factor = 0.95  # Коэффициент торможения
 
+        self.angular_velocity = glm.vec3(0, 0, 0)  # Текущая скорость поворота
+        self.angular_acceleration = 0.001  # Ускорение поворота
+        self.max_angular_speed = 2  # Максимальная скорость поворота
+        self.angular_brake_factor = 0.95  # Коэффициент торможения поворота
+
+    def update(self) -> None:
+        super().update()  # Обновление состояния модели
+        self.move()
+
+    def move(self) -> None:
+        keys = pg.key.get_pressed()
+
+        # Применяем ускорение в зависимости от нажатия клавиш
+        if keys[pg.K_LEFT]:
+            self.angular_velocity.y += self.angular_acceleration
+        if keys[pg.K_RIGHT]:
+            self.angular_velocity.y -= self.angular_acceleration
+        if keys[pg.K_UP]:
+            self.velocity.z -= self.acceleration
+        if keys[pg.K_DOWN]:
+            self.velocity.z += self.acceleration
+
+        # Применяем коэффициент торможения
+        self.velocity *= self.brake_factor
+        self.angular_velocity *= self.angular_brake_factor
+
+        # Ограничиваем скорость максимальной скоростью
+        self.velocity.z = glm.clamp(self.velocity.z, -self.max_speed, self.max_speed)
+        self.angular_velocity.y = glm.clamp(self.angular_velocity.y, -self.max_angular_speed, self.max_angular_speed)
+
+        # Вычисляем матрицу поворота для угла Y
+        rotation_matrix = glm.rotate(glm.mat4(1.0), self.rot.y, glm.vec3(0, 1, 0))
+
+        # Поворачиваем вектор скорости
+        rotated_velocity = glm.vec3(rotation_matrix * glm.vec4(self.velocity, 1.0))
+
+        # Обновляем позицию на основе повернутой скорости
+        self.pos += rotated_velocity
+
+        # Обновляем углы поворота на основе текущей скорости поворота
+        self.rot.y += self.angular_velocity.y
+
+        # Обновляем матрицу модели после изменения позиции и углов поворота
+        self.m_model = self.get_model_matrix()
 

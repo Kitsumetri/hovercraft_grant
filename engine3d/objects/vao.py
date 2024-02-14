@@ -14,6 +14,10 @@ class VAO:
             program=self.program.programs['default'],
             vbo=self.vbo.vbos['hovercraft'])
 
+        self.vaos['cube'] = self.get_vao(
+            program=self.program.programs['default'],
+            vbo=self.vbo.vbos['cube'])
+
         self.vaos['skybox'] = self.get_vao(
             program=self.program.programs['skybox'],
             vbo=self.vbo.vbos['skybox'])

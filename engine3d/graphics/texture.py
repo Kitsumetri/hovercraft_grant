@@ -13,6 +13,7 @@ class Texture:
 
         self.textures['hovercraft'] = self.get_texture(path='engine3d/graphics/assets/obj/Hovecraft2/metal.jpg')
         self.textures['depth_texture'] = self.get_depth_texture()
+        self.textures['cube'] = self.get_texture(path='engine3d/graphics/textures/cube.png')
 
     def get_texture(self, path) -> mgl.Texture:
         texture = pg.image.load(path).convert()
