@@ -18,26 +18,24 @@ class Engine:
 
         self.resolution: pg.math.Vector2 = vec2(w, h)
         self.clock: pg.time.Clock = pg.time.Clock()
-        self.time = 0
-        self.delta_time = 0
+        self.time: float = 0.0
+        self.delta_time: int = 0
 
         self.screen: pg.Surface = pg.display.set_mode(self.resolution)
-
         pg.mouse.set_visible(False)
-
-        self.scene = Scene(self)
+        self.scene: Scene = Scene(self)
 
     def get_time(self) -> None:
-        self.time = pg.time.get_ticks() * 0.001
+        self.time: float = pg.time.get_ticks() * 0.001
 
     def check_events(self) -> None:
         for event in pg.event.get():
             if event.type == pg.QUIT or (event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE):
-                self.is_running = False
+                self.is_running: bool = False
 
     def fps(self) -> None:
-        self.delta_time = self.clock.tick(60)
-        fps = str((self.clock.get_fps()))
+        self.delta_time: int = self.clock.tick(60)
+        fps: float = self.clock.get_fps()
         pg.display.set_caption(f"{self.win_name} | FPS: {fps:.4}")
 
     def draw(self) -> None:

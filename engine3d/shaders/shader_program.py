@@ -12,14 +12,14 @@ class ShaderProgram:
 
     def get_program(self, shader_name: str) -> mgl.Program:
         with open(f"engine3d/shaders/verts/{shader_name}.vert") as vert_file:
-            vertex_shader = vert_file.read()
+            vertex_shader: str = vert_file.read()
 
         with open(f"engine3d/shaders/frags/{shader_name}.frag") as frag_file:
-            fragment_shader = frag_file.read()
+            fragment_shader: str = frag_file.read()
 
-        program = self.ctx.program(vertex_shader=vertex_shader,
-                                   fragment_shader=fragment_shader)
+        program: mgl.Program = self.ctx.program(vertex_shader=vertex_shader,
+                                                fragment_shader=fragment_shader)
         return program
 
-    def release(self):
+    def release(self) -> None:
         [program.release() for program in self.programs.values()]

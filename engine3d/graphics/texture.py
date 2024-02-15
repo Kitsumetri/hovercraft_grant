@@ -8,12 +8,14 @@ class Texture:
         self.app = app
         self.ctx: mgl.Context = app.ctx
         self.textures: Dict[str, mgl.Texture | mgl.TextureCube] = dict()
-        self.textures['skybox'] = self.get_texture_cube(dir_path='engine3d/graphics/textures/skybox/',
-                                                        ext='png')
 
-        self.textures['hovercraft'] = self.get_texture(path='engine3d/graphics/assets/obj/Hovecraft2/metal.jpg')
-        self.textures['depth_texture'] = self.get_depth_texture()
-        self.textures['cube'] = self.get_texture(path='engine3d/graphics/textures/cube.png')
+        self.on_init()
+
+    def on_init(self) -> None:
+        self.textures.update({'skybox': self.get_texture_cube('engine3d/graphics/textures/skybox/', ext='png')})
+        self.textures.update({'hovercraft': self.get_texture(path='engine3d/graphics/assets/obj/Hovercraft/metal.jpg')})
+        self.textures.update({'depth_texture': self.get_depth_texture()})
+        self.textures.update({'cube': self.get_texture(path='engine3d/graphics/textures/cube.png')})
 
     def get_texture(self, path) -> mgl.Texture:
         texture = pg.image.load(path).convert()
@@ -27,7 +29,7 @@ class Texture:
         return texture
 
     def get_depth_texture(self) -> mgl.Texture:
-        depth_texture = self.ctx.depth_texture((self.app.screen_w, self.app.screen_h))
+        depth_texture: mgl.Texture = self.ctx.depth_texture((self.app.screen_w, self.app.screen_h))
         depth_texture.repeat_x = False
         depth_texture.repeat_y = False
         return depth_texture
@@ -37,7 +39,7 @@ class Texture:
         textures: List[pg.Surface] = list()
 
         for face in faces:
-            if face in ['right', 'left', 'front', 'back']:
+            if face in ('right', 'left', 'front', 'back'):
                 texture: pg.Surface = pg.transform.flip(pg.image.load(dir_path + f'{face}.{ext}').convert(),
                                                         flip_x=True, flip_y=False)
             else:

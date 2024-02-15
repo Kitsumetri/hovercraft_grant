@@ -3,6 +3,7 @@ import moderngl as mgl
 import numpy as np
 from pywavefront import Wavefront
 
+
 class BaseVBO:
     def __init__(self, ctx: mgl.Context) -> None:
         self.ctx: mgl.Context = ctx
@@ -10,8 +11,7 @@ class BaseVBO:
         self.format: str | None = None
         self.attribs: list | None = None
 
-    def get_vertex_data(self) -> np.array:
-        pass
+    def get_vertex_data(self) -> np.array: ...
 
     def get_vbo(self) -> mgl.Buffer:
         return self.ctx.buffer(self.get_vertex_data())
@@ -65,8 +65,8 @@ class CubeVBO(BaseVBO):
         return np.array(data, dtype='f4')
 
     def get_vertex_data(self):
-        vertices = [(-1, -1, 1), ( 1, -1,  1), (1,  1,  1), (-1, 1,  1),
-                    (-1, 1, -1), (-1, -1, -1), (1, -1, -1), ( 1, 1, -1)]
+        vertices = [(-1, -1, 1), (1, -1, 1), (1, 1, 1), (-1, 1, 1),
+                    (-1, 1, -1), (-1, -1, -1), (1, -1, -1), (1, 1, -1)]
 
         indices = [(0, 2, 3), (0, 1, 2),
                    (1, 7, 2), (1, 6, 7),
@@ -82,15 +82,15 @@ class CubeVBO(BaseVBO):
                              (0, 1, 2), (2, 3, 0),
                              (2, 3, 0), (2, 0, 1),
                              (0, 2, 3), (0, 1, 2),
-                             (3, 1, 2), (3, 0, 1),]
+                             (3, 1, 2), (3, 0, 1), ]
         tex_coord_data = self.get_data(tex_coord_vertices, tex_coord_indices)
 
-        normals = [( 0, 0, 1) * 6,
-                   ( 1, 0, 0) * 6,
-                   ( 0, 0,-1) * 6,
+        normals = [(0, 0, 1) * 6,
+                   (1, 0, 0) * 6,
+                   (0, 0, -1) * 6,
                    (-1, 0, 0) * 6,
-                   ( 0, 1, 0) * 6,
-                   ( 0,-1, 0) * 6,]
+                   (0, 1, 0) * 6,
+                   (0, -1, 0) * 6, ]
         normals = np.array(normals, dtype='f4').reshape(36, 3)
 
         vertex_data = np.hstack([normals, vertex_data])
@@ -105,7 +105,7 @@ class HovercraftVBO(BaseVBO):
         self.attribs: List[str] = ['in_texcoord_0', 'in_normal', 'in_position']
 
     def get_vertex_data(self) -> np.array:
-        objs: Wavefront = Wavefront('engine3d/graphics/assets/obj/Hovecraft2/1.obj',
+        objs: Wavefront = Wavefront('engine3d/graphics/assets/obj/Hovercraft/1.obj',
                                     create_materials=True, cache=True, parse=True)
         vertices: List[np.array] = list()
         for obj in objs.materials.values():

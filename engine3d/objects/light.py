@@ -4,7 +4,7 @@ from typing import Tuple
 
 class Light:
     def __init__(self, position: Tuple[float, float, float] = (50, 50, -10),
-                 color: Tuple[float, float, float] = (1, 1, 1)):
+                 color: Tuple[float, float, float] = (1, 1, 1)) -> None:
         self.position: glm.vec3 = glm.vec3(position)
         self.color: glm.vec3 = glm.vec3(color)
         self.direction: glm.vec3 = glm.vec3(0, 0, 0)

@@ -1,4 +1,5 @@
 import pygame as pg
+
 from pygame.math import Vector2 as vec2
 from typing import List
 
@@ -11,11 +12,9 @@ class BaseModel:
         self.font_color: pg.Color = pg.Color('white')
         self.font: pg.font.Font = pg.font.Font(pg.font.get_default_font(), self.font_size)
 
-    def render(self) -> None:
-        ...
+    def render(self) -> None: ...
 
-    def update(self) -> None:
-        ...
+    def update(self) -> None: ...
 
 
 class Grid(BaseModel):
@@ -63,11 +62,11 @@ class Water(BaseModel):
         super().__init__(app)
 
         self.color = pg.Color(0, 0, 230, 45)
-        self.surface_size = vec2(app.screen_w, app.screen_h // 2)
-        self.surface = pg.Surface(self.surface_size, flags=pg.SRCALPHA)
+        self.surface_size: vec2 = vec2(app.screen_w, app.screen_h // 2)
+        self.surface: pg.Surface = pg.Surface(self.surface_size, flags=pg.SRCALPHA)
         self.surface.fill(self.color)
 
-        self.rect = self.surface.get_rect(x=0, y=self.surface_size.y)
+        self.rect: pg.Rect = self.surface.get_rect(x=0, y=self.surface_size.y)
 
     def render(self) -> None:
         self.app.screen.blit(self.surface, (0, self.surface_size.y))
@@ -83,8 +82,7 @@ class Balloon:
     def draw(self) -> None:
         pg.draw.circle(self.app.screen, self.color, self.center, self.radius, width=2)
 
-    def update(self) -> None:
-        pass
+    def update(self) -> None: ...
 
 
 class MainModel(BaseModel):
@@ -107,8 +105,8 @@ class MainModel(BaseModel):
             Balloon(app, r, vec2(self.point_B.x, self.point_B.y + i * r * 2 + i * 6), self.balloons_color)
             for i, r in enumerate((self.radius, self.radius // 2, self.radius // 3), start=0)]
 
-        self.point_A_text = self.font.render('A', True, self.font_color)
-        self.point_B_text = self.font.render('B', True, self.font_color)
+        self.point_A_text: pg.Surface = self.font.render('A', True, self.font_color)
+        self.point_B_text: pg.Surface = self.font.render('B', True, self.font_color)
 
     def render(self) -> None:
         pg.draw.line(self.app.screen, pg.Color('white'), self.point_A, self.point_B, width=5)

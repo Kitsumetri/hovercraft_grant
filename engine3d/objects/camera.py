@@ -43,14 +43,15 @@ class Camera:
         self.move()
         self.rotate()
         self.update_camera_vectors()
-        self.m_view = self.get_view_matrix()
+        self.m_view: glm.mat4x4 = self.get_view_matrix()
 
     def move(self) -> None:
-        keys = pg.key.get_pressed()
+        keys: pg.key.ScancodeWrapper = pg.key.get_pressed()
 
-        velocity = self.standard_speed if not keys[pg.K_SPACE] else self.high_speed
+        velocity: float = self.standard_speed if not keys[pg.K_SPACE] else self.high_speed
 
         velocity *= self.app.delta_time
+
         if keys[pg.K_w]:
             self.position += self.forward * velocity
         if keys[pg.K_s]:
