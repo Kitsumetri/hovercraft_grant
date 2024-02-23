@@ -20,6 +20,7 @@ class Engine:
         self.clock: pg.time.Clock = pg.time.Clock()
         self.time: float = 0.0
         self.delta_time: int = 0
+        self.fps_num: int = 60
 
         self.screen: pg.Surface = pg.display.set_mode(self.resolution)
         pg.mouse.set_visible(False)
@@ -34,7 +35,7 @@ class Engine:
                 self.is_running: bool = False
 
     def fps(self) -> None:
-        self.delta_time: int = self.clock.tick(60)
+        self.delta_time: int = self.clock.tick(self.fps_num)
         fps: float = self.clock.get_fps()
         pg.display.set_caption(f"{self.win_name} | FPS: {fps:.4}")
 
