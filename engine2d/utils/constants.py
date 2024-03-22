@@ -2,6 +2,7 @@ from typing import Final
 from numpy import pi
 
 m: Final[int] = 8_000
+rho: Final[int] = 1000
 p: Final[int] = 80
 S: Final[int] = 40
 g: Final[float] = 9.81
@@ -11,7 +12,7 @@ W: Final[float] = 7.0
 
 # Dynamic
 Q_in = 10.0
-Q_out = 9.0
+Q_out = 8.0
 
 I: Final[int] = 1_200_00
 l: Final[int] = 6

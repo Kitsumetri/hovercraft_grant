@@ -2,12 +2,13 @@ from pygame.math import Vector2 as vec2
 from typing import List, Tuple, Union
 import pygame as pg
 import numpy as np
+from engine2d.utils.constants import *
 
 
 class BaseModel:
     def __init__(self, app) -> None:
         self.app = app
-        self.center: vec2 = vec2(self.app.screen_w // 2, self.app.screen_h // 2)
+        self.center_screen: vec2 = vec2(self.app.screen_w // 2, self.app.screen_h // 2)
         self.font_size: int = 20
         self.font_color: pg.Color = pg.Color('white')
         self.font: pg.font.Font = pg.font.Font(pg.font.get_default_font(), self.font_size)
@@ -25,8 +26,8 @@ class Grid(BaseModel):
         self.grid_color: pg.Color = pg.Color(50, 50, 50, 0)
         self.color: pg.Color = pg.Color('white')
 
-        self.x_axis: List[vec2] = [vec2(0, self.center.y), vec2(self.app.screen_w, self.center.y)]
-        self.y_axis: List[vec2] = [vec2(self.center.x, 0), vec2(self.center.x, self.app.screen_h)]
+        self.x_axis: List[vec2] = [vec2(0, self.center_screen.y), vec2(self.app.screen_w, self.center_screen.y)]
+        self.y_axis: List[vec2] = [vec2(self.center_screen.x, 0), vec2(self.center_screen.x, self.app.screen_h)]
 
         self.x_axis_text: pg.Surface = self.font.render('X', True, self.font_color)
         self.y_axis_text: pg.Surface = self.font.render('Y', True, self.font_color)
@@ -34,13 +35,13 @@ class Grid(BaseModel):
     def draw_basis(self) -> None:
         pg.draw.line(self.app.screen, self.color, self.x_axis[0], self.x_axis[1])
         pg.draw.line(self.app.screen, self.color, self.y_axis[0], self.y_axis[1])
-        pg.draw.circle(self.app.screen, pg.Color('red'), self.center, 7)
+        pg.draw.circle(self.app.screen, pg.Color('red'), self.center_screen, 7)
 
         self.app.screen.blit(self.x_axis_text,
-                             self.x_axis_text.get_rect(x=self.app.screen_w - self.font_size, y=self.center.y + self.font_size))
+                             self.x_axis_text.get_rect(x=self.app.screen_w - self.font_size, y=self.center_screen.y + self.font_size))
 
         self.app.screen.blit(self.y_axis_text,
-                             self.y_axis_text.get_rect(x=self.center.x + self.font_size,
+                             self.y_axis_text.get_rect(x=self.center_screen.x + self.font_size,
                                                        y=self.font_size))
 
     def draw_squares(self) -> None:
@@ -113,8 +114,10 @@ class Water(BaseModel):
     def update(self) -> None:
         self.time += self.time_scale
 
-class Balloon:
-    def __init__(self, app, radius: float, center: vec2, color: pg.Color) -> None:
+
+class Balloon(BaseModel):
+    def __init__(self, app, radius: float, center: vec2, color: pg.Color, draw_hitbox: bool = False) -> None:
+        super().__init__(app)
         self.app = app
         self.center: vec2 = center
         self.radius: float = radius
@@ -122,23 +125,42 @@ class Balloon:
         self.surface = pg.Surface((radius * 2, radius * 2))
         self.mask = pg.mask.from_surface(self.surface)
         self.rect = self.surface.get_rect(center=center)
+        self.draw_hitbox = draw_hitbox
 
     def draw(self) -> None:
         pg.draw.circle(self.app.screen, self.color, self.center, self.radius, width=2)
-        # pg.draw.rect(self.app.screen, pg.Color('black'), self.rect, width=2)
+        pg.draw.rect(self.app.screen, pg.Color('black'), self.rect, width=2) if self.draw_hitbox else None
 
     def update(self) -> None: ...
+
+    def calculate_submerged_volume(self, water_level=500):
+        R = self.radius / 10
+        bottom_to_water = (self.center.y + R) - water_level
+        if bottom_to_water <= 0:
+            return 0  # Баллон не погружен
+
+        h = min(2 * R, bottom_to_water)
+        segment_area = R ** 2 * np.arccos((R - h) / R) - (R - h) * np.sqrt(2 * R * h - h ** 2)
+        volume = segment_area
+        return volume / 4
+
+    def calculate_archimedes_force(self) -> float:
+        if self.center.y <= self.center_screen.y - self.radius * 2:
+            return 0
+        volume = self.calculate_submerged_volume()  # объем погруженной части, м^3
+        force = rho * g * volume
+        return force
 
 
 class MainModel(BaseModel):
     def __init__(self, app, point_A: vec2, point_B: vec2, radius: float) -> None:
         super().__init__(app)
 
-        self.point_A: vec2 = vec2(self.center.x + point_A.x,
-                                  self.center.y - point_A.y)
+        self.point_A: vec2 = vec2(self.center_screen.x + point_A.x,
+                                  self.center_screen.y - point_A.y)
 
-        self.point_B: vec2 = vec2(self.center.x + point_B.x,
-                                  self.center.y - point_B.y)
+        self.point_B: vec2 = vec2(self.center_screen.x + point_B.x,
+                                  self.center_screen.y - point_B.y)
 
         self.radius: float = radius
         self.balloons_color: pg.Color = pg.Color('white')
@@ -160,9 +182,26 @@ class MainModel(BaseModel):
         self.dp_values: List[float] = [0]
         self.gamma_values: List[float] = [0]
 
+        self.F_m = m * g
+        self.dW_dt = 1.2
+        self.dt = 0.01
+
     def update(self) -> None:
         super().update()
-        # self.solve_system_euler()
+        self.solve_euler_equations()
+
+    def solve_euler_equations(self):
+        F_arch_sum = sum(b.calculate_archimedes_force() for b in self.left_balloons + self.right_balloons)
+
+        dy_dt_square = (p * S - self.F_m + F_arch_sum) / m
+        dp_dt = n * p_a / W * (Q_in - Q_out - self.dW_dt)
+        d_gamma_dt_square = F_arch_sum * l * np.cos(alpha) / I
+
+        self.y_values.append(self.y_values[-1] + dy_dt_square * self.dt)
+        self.dp_values.append(self.dp_values[-1] + dp_dt * self.dt)
+        self.gamma_values.append(self.gamma_values[-1] + d_gamma_dt_square * self.dt)
+
+        print(f"Y: {self.y_values[-1]} | P: {self.dp_values[-1]} | Gamma: {self.gamma_values[-1]}")
 
     def render(self) -> None:
         pg.draw.line(self.app.screen, pg.Color('white'), self.point_A, self.point_B, width=5)
@@ -173,5 +212,4 @@ class MainModel(BaseModel):
         pg.draw.circle(self.app.screen, pg.Color('black'), self.point_B, 5)
         self.app.screen.blit(self.point_B_text, vec2(self.point_B.x, self.point_B.y - self.font_size))
 
-        [balloon.draw() for balloon in self.left_balloons]
-        [balloon.draw() for balloon in self.right_balloons]
+        [balloon.draw() for balloon in self.left_balloons + self.right_balloons]

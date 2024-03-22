@@ -12,8 +12,8 @@ class Scene:
         self.load()
 
     def load(self) -> None:
-        self.models.append(e2d_models.Grid(self.app, show_squares=False))
-        self.models.append(e2d_models.Water(self.app))
+        self.models.append(e2d_models.Grid(self.app, show_squares=True))
+        self.models.append(e2d_models.Water(self.app, waves_enabled=False))
         self.models.append(e2d_models.MainModel(self.app, vec2(-200, 20), vec2(200, 20), 40))
 
     def render(self) -> None:
