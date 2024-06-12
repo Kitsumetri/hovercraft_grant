@@ -18,12 +18,16 @@ class Point:
     def to_array(self) -> np.array:
         return np.array([self.x, self.y])
 
+    def distance_to(self, other) -> float:
+        return np.sqrt((self.x - other.x) ** 2 + (self.y - other.y) ** 2)
+
 
 class SystemOfEquations:
     def __init__(self,
                  params: Parameters,
                  t_end: int | float = 1_000,
                  eps: float = 0.01) -> None:
+
         self.params = params
         self.eps = eps
         self.current_iteration = 0
@@ -48,8 +52,23 @@ class SystemOfEquations:
         self.circle_S = np.pi * (self.params.r ** 2)
         self.V_cylinder = self.circle_S * self.params.h
 
-    def get_cylinder_volume(self,
-                            upper_point: Point):
+    def get_W(self):
+        width = self.params.S / (self.params.l * 2)
+
+        a = Point(x=self.A.x + self.params.r, y=self.A.y)
+        b = Point(a.x, 0)
+        c = Point(x=self.B.x - self.params.r, y=self.B.y)
+        d = Point(c.x, 0)
+
+        ab = a.distance_to(b)
+        bc = b.distance_to(d)
+        cd = d.distance_to(c)
+        da = c.distance_to(a)
+        p_2 = (ab + bc + cd + da) / 2
+
+        return np.sqrt((p_2 - ab) * (p_2 - bc) * (p_2 - cd) * (p_2 - da)) * width
+
+    def get_cylinder_volume(self, upper_point: Point) -> int | float:
 
         if upper_point.y <= 0:
             return self.V_cylinder
@@ -61,25 +80,29 @@ class SystemOfEquations:
 
         return self.V_cylinder - V_upper_part
 
+    def get_S_gap(self, upper_point: Point) -> int | float:
+        return max(0, upper_point.y - self.params.h)
+
     def solve(self):
         for _ in tqdm(self.t_list, total=self.t_list.shape[0]):
             self.current_iteration += 1
 
             # TODO: dp_dt
+            self.S_gap = self.get_S_gap(self.A)
             Q_in, Q_out = self.get_Q_in(), self.get_Q_out()
             dp_dt = self.get_dp_dt(self.W, Q_in, Q_out, self.dW_dt) * self.eps
             ###################
             self.p += dp_dt
             self.p = self.clamp(self.p, 600, 2964)
             self.p_list.append(self.p)
-            self.W = self.W  # TODO
-            self.dW_dt = self.W - self.W_list[-1]
+            self.W = self.get_W()  # FIXME
+            self.dW_dt = (self.W - self.W_list[-1]) * self.eps
             self.W_list.append(self.W)
             ###################
 
             # TODO: d2y_dt2
             F_p, F_m = self.get_F_p(), self.get_F_m()
-            V = self.get_cylinder_volume(self.A) * 2  # TODO
+            V = self.get_cylinder_volume(self.A) * 2  # FIXME
             F_a = self.get_F_a(V)
             d2y_dt2 = self.get_d2y_dt2(F_p, F_m, F_a) * self.eps
             ###################
@@ -88,7 +111,8 @@ class SystemOfEquations:
             ###################
 
             # TODO: d2gamma_dt2
-            self.A.y += d2y_dt2
+            self.A.y += d2y_dt2  # FIXME
+            self.B.y += d2y_dt2  # FIXME
             cos_a = self.get_cos_alpha(np.array(self.A.to_array()))
             d2gamma_dt2 = self.get_d2gamma_d2t(F_a, cos_a) * self.eps
             ###################
@@ -216,10 +240,11 @@ class SystemOfEquations:
 
 
 def main() -> None:
-    equations = SystemOfEquations(Parameters())
-    equations.solve()
-    equations.plot()
+    equations = SystemOfEquations(Parameters(S=90, h=1.5, r=1.3), t_end=100, eps=0.01)
     print(equations)
+    equations.solve()
+    print(equations)
+    equations.plot()
 
 
 if __name__ == '__main__':
