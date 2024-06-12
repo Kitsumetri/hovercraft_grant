@@ -6,7 +6,7 @@ import customtkinter as ctk
 from PIL import Image
 from tkinter import filedialog as fd
 from CTkMessagebox import CTkMessagebox
-from utils import Parameters
+from app_utils import Parameters
 from solve_eq import solve
 
 
