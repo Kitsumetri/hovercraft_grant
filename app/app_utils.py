@@ -7,7 +7,7 @@ class Parameters:
     rho: float | int = field(default=1_000)  # Плотность воды
     S: float | int = field(default=60)  # Площадь воздушной подушки
     g: float | int = field(default=9.8)  # Ускорение свободного падения
-    n: float | int = field(default=1.4)  # Показатель политропы
+    n: float | int = field(default=1.4)  # Показатель политропы для адиабатического процесса
     p_a: float | int = field(default=101_300)  # Давление воздуха
     I: float | int = field(default=250_000)  # Момент инерции Y
     l: float | int = field(default=3)  # Длина плеча

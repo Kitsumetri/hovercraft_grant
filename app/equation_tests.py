@@ -88,6 +88,8 @@ class TestClassSubEquations:
         test_system.p = 10
         assert test_system.get_Q_in() == 6
 
-    def test_W(self):
-        test_system = SystemOfEquations(Parameters(S=16, l=4, r=1, k=2))
-        assert test_system.get_W() == 12 * 2
+    def test_area(self):
+        test_system = SystemOfEquations(Parameters())
+
+        assert test_system.get_area(Point(0, 3), Point(8, 11), 0, 8) == 56
+        assert test_system.get_area(Point(0, 1), Point(8, 1), 0, 8) == 8

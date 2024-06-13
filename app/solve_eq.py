@@ -1,5 +1,4 @@
 from tqdm import tqdm
-
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -52,21 +51,14 @@ class SystemOfEquations:
         self.circle_S = np.pi * (self.params.r ** 2)
         self.V_cylinder = self.circle_S * self.params.h
 
-    def get_W(self):
-        width = self.params.S / (self.params.l * 2)
+    @staticmethod
+    def F_x(A: Point, B: Point, x: int | float) -> int | float:
+        up = (B.y - A.y) * (x ** 2 / 2 - A.x * x)
+        down = B.x - A.x
+        return up / down + A.y * x
 
-        a = Point(x=self.A.x + self.params.r, y=self.A.y)
-        b = Point(a.x, 0)
-        c = Point(x=self.B.x - self.params.r, y=self.B.y)
-        d = Point(c.x, 0)
-
-        ab = a.distance_to(b)
-        bc = b.distance_to(d)
-        cd = d.distance_to(c)
-        da = c.distance_to(a)
-        p_2 = (ab + bc + cd + da) / 2
-
-        return np.sqrt((p_2 - ab) * (p_2 - bc) * (p_2 - cd) * (p_2 - da)) * width
+    def get_area(self, A: Point, B: Point, down: int | float, up: int | float) -> int | float:
+        return self.F_x(A, B, up) - self.F_x(A, B, down)
 
     def get_cylinder_volume(self, upper_point: Point) -> int | float:
 
@@ -84,25 +76,28 @@ class SystemOfEquations:
         return max(0, upper_point.y - self.params.h)
 
     def solve(self):
-        for _ in tqdm(self.t_list, total=self.t_list.shape[0]):
+        for _ in tqdm(self.t_list):
             self.current_iteration += 1
 
             # TODO: dp_dt
-            self.S_gap = self.get_S_gap(self.A)
+            self.S_gap = self.get_S_gap(self.A) + self.get_S_gap(self.B)
             Q_in, Q_out = self.get_Q_in(), self.get_Q_out()
             dp_dt = self.get_dp_dt(self.W, Q_in, Q_out, self.dW_dt) * self.eps
             ###################
             self.p += dp_dt
             self.p = self.clamp(self.p, 600, 2964)
             self.p_list.append(self.p)
-            self.W = self.get_W()  # FIXME
-            self.dW_dt = (self.W - self.W_list[-1]) * self.eps
+            self.W = self.get_area(self.A, self.B,
+                                   down=self.A.x + self.params.r,
+                                   up=self.B.x - self.params.r) * 10
+
+            self.dW_dt = (self.W - self.W_list[-1])
             self.W_list.append(self.W)
             ###################
 
             # TODO: d2y_dt2
             F_p, F_m = self.get_F_p(), self.get_F_m()
-            V = self.get_cylinder_volume(self.A) * 2  # FIXME
+            V = self.get_cylinder_volume(self.A) + self.get_cylinder_volume(self.B)
             F_a = self.get_F_a(V)
             d2y_dt2 = self.get_d2y_dt2(F_p, F_m, F_a) * self.eps
             ###################
@@ -111,8 +106,14 @@ class SystemOfEquations:
             ###################
 
             # TODO: d2gamma_dt2
-            self.A.y += d2y_dt2  # FIXME
-            self.B.y += d2y_dt2  # FIXME
+            # if 0 <= self.gamma % 360 <= 90:
+            #     self.A.y += d2y_dt2
+            # else:
+            #     self.B.y += d2y_dt2
+
+            self.A.y += d2y_dt2
+            self.B.y += d2y_dt2
+
             cos_a = self.get_cos_alpha(np.array(self.A.to_array()))
             d2gamma_dt2 = self.get_d2gamma_d2t(F_a, cos_a) * self.eps
             ###################
@@ -133,7 +134,6 @@ class SystemOfEquations:
                   dW_dt: int | float) -> float:
         first_half = (self.params.n * self.params.p_a) / W
         second_half = Q_in - Q_out - dW_dt
-
         return first_half * second_half
 
     def get_d2gamma_d2t(self,
@@ -177,59 +177,64 @@ class SystemOfEquations:
         return min(max(value, min_value), max_value)
 
     def __repr__(self) -> str:
-        separator = "+" + ("-" * 50) + "\n"
+        separator = "\n" + "+" + ("-" * 50) + "\n"
         repr_str = (
             f"{separator}"
-            f"| System of Equations\n"
+            f"| System of Equations"
             f"{separator}"
-            f"| Params: {self.params}\n"
+            f"| Params: {self.params}"
             f"{separator}"
-            f"| Solution (Iteration: {self.current_iteration}):\n"
+            f"| Solution (Iteration: {self.current_iteration}):"
+            f"{separator}"
             f"| p = {self.p}\n"
             f"| y = {self.y}\n"
             f"| γ = {self.gamma}\n"
             f"| W = {self.W}\n"
             f"| A: {self.A}\n"
             f"| B: {self.B}\n"
+            f"| S_gap: {self.S_gap}"
             f"{separator}"
         )
         return repr_str
 
-    def plot(self) -> None:
+    def plot(self, max_elem: Optional[int] = None) -> None:
 
         if self.current_iteration == 0:
             raise RuntimeError("Use .solve() method first")
 
-        y = self.y_list
-        p = self.p_list
-        gamma = self.gamma_list
-        W = self.W_list
-        t = self.t_list
+        if max_elem is None:
+            max_elem = self.t_list.shape[0]
+
+        y = self.y_list[:max_elem]
+        p = self.p_list[:max_elem]
+        gamma = self.gamma_list[:max_elem]
+        W = self.W_list[:max_elem]
+        t = self.t_list[:max_elem]
 
         plt.figure(figsize=(18, 8))
         plt.subplot(2, 2, 1)
         plt.grid()
-        plt.plot(t, y[:-1])
+        plt.plot(t, y)
         plt.title('Y')
         plt.xlabel('Time (s)')
         plt.ylabel('Y')
 
         plt.subplot(2, 2, 2)
-        plt.plot(t, gamma[:-1])
+        plt.plot(t, gamma)
         plt.grid()
         plt.title('Gamma')
         plt.xlabel('Time (s)')
         plt.ylabel('Gamma')
 
         plt.subplot(2, 2, 3)
-        plt.plot(t, p[:-1])
+        plt.plot(t, p)
         plt.grid()
         plt.title('P')
         plt.xlabel('Time (s)')
         plt.ylabel('P')
 
         plt.subplot(2, 2, 4)
-        plt.plot(t, W[:-1])
+        plt.plot(t, W)
         plt.grid()
         plt.title('W')
         plt.xlabel('Time (s)')
@@ -240,11 +245,13 @@ class SystemOfEquations:
 
 
 def main() -> None:
-    equations = SystemOfEquations(Parameters(S=90, h=1.5, r=1.3), t_end=100, eps=0.01)
+    equations = SystemOfEquations(Parameters(S=60, h=1.2, r=1.1),
+                                  t_end=1_000,
+                                  eps=0.01)
     print(equations)
     equations.solve()
     print(equations)
-    equations.plot()
+    equations.plot(max_elem=100)
 
 
 if __name__ == '__main__':
