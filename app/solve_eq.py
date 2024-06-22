@@ -1,8 +1,13 @@
 from tqdm import tqdm
 import matplotlib.pyplot as plt
+
+from matplotlib.animation import FuncAnimation, FFMpegWriter
+
 import numpy as np
 from typing import Optional, Any
 from dataclasses import dataclass
+
+import os
 
 from app_utils import Parameters
 from numba import jit, njit
@@ -98,6 +103,9 @@ class SystemOfEquations:
         self.circle_S = np.pi * (self.params.r ** 2)
         self.V_cylinder = self.circle_S * self.params.h
 
+        self.A_positions = [self.A.to_array().copy()]
+        self.B_positions = [self.B.to_array().copy()]
+
     @staticmethod
     def F_x(A: Point, B: Point, x: int | float) -> int | float:
         return F_x_jit(A.to_array(), B.to_array(), x)
@@ -151,6 +159,9 @@ class SystemOfEquations:
             # FIXME: нужно крутить точки
             self.A.y += d2y_dt2
             self.B.y += d2y_dt2
+
+            self.A_positions.append(self.A.to_array().copy())
+            self.B_positions.append(self.B.to_array().copy())
             # #########
 
             self.gamma += d2gamma_dt2
@@ -272,15 +283,63 @@ class SystemOfEquations:
         plt.tight_layout()
         plt.show()
 
+    def animate_model(self,
+                      interval: int = 10,
+                      step: int = 10,
+                      save: bool = True,
+                      filename: str = "animation.mp4") -> None:
+        fig, ax = plt.subplots()
+        ax.grid(True)
+        ax.set_title('Model Animation')
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_xlim(-self.params.l - 1, self.params.l + 1)
+        ax.set_ylim(min(self.y_array) - 5, max(self.y_array) + 5)
+        line, = ax.plot([], [], 'k-')
+        scatter_A = ax.scatter([], [], s=200, color='orange')
+        scatter_B = ax.scatter([], [], s=200, color='orange')
+
+        water_surface = ax.fill_between([ax.get_xlim()[0], ax.get_xlim()[1]],
+                                        [0, 0],
+                                        ax.get_ylim()[0],
+                                        color='blue',
+                                        alpha=0.3)
+
+        def init():
+            line.set_data([], [])
+            scatter_A.set_offsets(np.empty((0, 2)))
+            scatter_B.set_offsets(np.empty((0, 2)))
+            return line, scatter_A, scatter_B, water_surface
+
+        def update(frame):
+            A_pos = [self.A_positions[frame][0], self.A_positions[frame][1]]
+            B_pos = [self.B_positions[frame][0], self.B_positions[frame][1]]
+            line.set_data([A_pos[0], B_pos[0]], [A_pos[1], B_pos[1]])
+            scatter_A.set_offsets(np.array(A_pos).reshape(1, 2))
+            scatter_B.set_offsets(np.array(B_pos).reshape(1, 2))
+            return line, scatter_A, scatter_B, water_surface
+
+        ani = FuncAnimation(fig, update, frames=tuple(range(0, len(self.A_positions), step)),
+                            init_func=init, blit=True, interval=interval)
+
+        if save:
+            os.makedirs("animations", exist_ok=True)
+            writer = FFMpegWriter(fps=1000 // interval, metadata=dict(artist='User'), bitrate=1800)
+            ani.save(os.path.join("animations", filename), writer=writer)
+            print(f"Animation saved as animations/{filename}")
+
+        plt.show()
+
 
 def main() -> None:
-    equations = SystemOfEquations(Parameters(h=1, r=0.9),
+    equations = SystemOfEquations(Parameters(h=3, r=0.5),
                                   t_end=10,
-                                  eps=1e-4)
+                                  eps=1e-3)
     print(equations)
     equations.solve()
     print(equations)
     equations.plot()
+    equations.animate_model(save=False)
 
 
 if __name__ == '__main__':
