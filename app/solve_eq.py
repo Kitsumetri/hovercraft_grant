@@ -91,7 +91,7 @@ class SystemOfEquations:
                                    down=self.A.x + self.params.r,
                                    up=self.B.x - self.params.r) * 10
 
-            self.dW_dt = (self.W - self.W_list[-1])
+            self.dW_dt = (self.W - self.W_list[-1]) / (2 * self.eps)
             self.W_list.append(self.W)
             ###################
 
@@ -106,13 +106,13 @@ class SystemOfEquations:
             ###################
 
             # TODO: d2gamma_dt2
-            # if 0 <= self.gamma % 360 <= 90:
-            #     self.A.y += d2y_dt2
-            # else:
-            #     self.B.y += d2y_dt2
+            if 0 <= self.gamma % 360 <= 90:
+                self.B.y += d2y_dt2
+            else:
+                self.A.y += d2y_dt2
 
-            self.A.y += d2y_dt2
-            self.B.y += d2y_dt2
+            # self.A.y += d2y_dt2
+            # self.B.y += d2y_dt2
 
             cos_a = self.get_cos_alpha(np.array(self.A.to_array()))
             d2gamma_dt2 = self.get_d2gamma_d2t(F_a, cos_a) * self.eps
@@ -245,13 +245,13 @@ class SystemOfEquations:
 
 
 def main() -> None:
-    equations = SystemOfEquations(Parameters(S=60, h=1.2, r=1.1),
-                                  t_end=1_000,
-                                  eps=0.01)
+    equations = SystemOfEquations(Parameters(h=2, r=1.1),
+                                  t_end=100,
+                                  eps=1e-3)
     print(equations)
     equations.solve()
     print(equations)
-    equations.plot(max_elem=100)
+    equations.plot()
 
 
 if __name__ == '__main__':
