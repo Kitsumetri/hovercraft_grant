@@ -1,12 +1,54 @@
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import numpy as np
-
-from cmath import sqrt
-from typing import Optional
+from typing import Optional, Any
 from dataclasses import dataclass
 
 from app_utils import Parameters
+from numba import jit, njit
+from math import sqrt
+
+
+@jit(nopython=True, fastmath=True)
+def F_x_jit(A, B, x):
+    up = (B[1] - A[1]) * (x ** 2 / 2 - A[0] * x)
+    down = B[0] - A[0]
+    return up / down + A[1] * x
+
+
+@jit(nopython=True, fastmath=True)
+def get_S_gap_jit(UP, h):
+    return max(0, UP[1] - h)
+
+
+@jit(fastmath=True)
+def get_Q_in_jit(a, b, c, p):
+    D = b ** 2 - 4 * a * (c - p)
+    root1 = (-b - sqrt(D)) / (2 * a)
+    root2 = (-b + sqrt(D)) / (2 * a)
+    return max(root1, root2)
+
+
+@jit(fastmath=True)
+def get_Q_out_jit(xi, p, rho, S_gap):
+    return xi * np.sqrt(2 * p / rho) * S_gap
+
+
+@jit(fastmath=True)
+def get_cylinder_volume_jit(up_y, V_c, S, h):
+    if up_y <= 0:
+        return V_c
+
+    if up_y >= h:
+        return 0
+
+    V_upper_part = S * (h - up_y)
+    return V_c - V_upper_part
+
+
+@jit(fastmath=True)
+def get_d2y_dt2_jit(Fp, Fa, Fm, m):
+    return (Fp + Fa - Fm) / m
 
 
 @dataclass
@@ -15,10 +57,7 @@ class Point:
     y: int | float
 
     def to_array(self) -> np.array:
-        return np.array([self.x, self.y])
-
-    def distance_to(self, other) -> float:
-        return np.sqrt((self.x - other.x) ** 2 + (self.y - other.y) ** 2)
+        return np.array([self.x, self.y], dtype=np.float32)
 
 
 class SystemOfEquations:
@@ -39,11 +78,19 @@ class SystemOfEquations:
 
         self.dW_dt = 0
 
-        self.t_list = np.arange(0, t_end, eps, dtype=float)
-        self.y_list = [self.y]
-        self.p_list = [self.p]
-        self.W_list = [self.W]
-        self.gamma_list = [self.gamma]
+        self.t_array = np.arange(0, t_end, eps)
+
+        self.y_array = np.zeros_like(self.t_array)
+        self.y_array[0] = self.y
+
+        self.p_array = np.zeros_like(self.t_array)
+        self.p_array[0] = self.p
+
+        self.w_array = np.zeros_like(self.t_array)
+        self.w_array[0] = self.W
+
+        self.gamma_array = np.zeros_like(self.t_array)
+        self.gamma_array[0] = self.gamma
 
         self.A = Point(x=-self.params.l, y=self.y)
         self.B = Point(x=self.params.l, y=self.y)
@@ -53,85 +100,73 @@ class SystemOfEquations:
 
     @staticmethod
     def F_x(A: Point, B: Point, x: int | float) -> int | float:
-        up = (B.y - A.y) * (x ** 2 / 2 - A.x * x)
-        down = B.x - A.x
-        return up / down + A.y * x
+        return F_x_jit(A.to_array(), B.to_array(), x)
 
-    def get_area(self, A: Point, B: Point, down: int | float, up: int | float) -> int | float:
+    def get_W(self, A: Point, B: Point, down: int | float, up: int | float) -> int | float:
         return self.F_x(A, B, up) - self.F_x(A, B, down)
 
     def get_cylinder_volume(self, upper_point: Point) -> int | float:
-
-        if upper_point.y <= 0:
-            return self.V_cylinder
-
-        if upper_point.y >= self.params.h:
-            return 0
-
-        V_upper_part = self.circle_S * (self.params.h - upper_point.y)
-
-        return self.V_cylinder - V_upper_part
+        return get_cylinder_volume_jit(upper_point.y, self.V_cylinder, self.circle_S, self.params.h)
 
     def get_S_gap(self, upper_point: Point) -> int | float:
-        return max(0, upper_point.y - self.params.h)
+        return get_S_gap_jit(upper_point.to_array(), self.params.h)
 
     def solve(self):
-        for _ in tqdm(self.t_list):
-            self.current_iteration += 1
-
-            # TODO: dp_dt
-            self.S_gap = self.get_S_gap(self.A) + self.get_S_gap(self.B)
-            Q_in, Q_out = self.get_Q_in(), self.get_Q_out()
-            dp_dt = self.get_dp_dt(self.W, Q_in, Q_out, self.dW_dt) * self.eps
+        self.current_iteration = self.t_array.shape[0]
+        for idx in tqdm(range(1, self.current_iteration)):
             ###################
-            self.p += dp_dt
-            self.p = self.clamp(self.p, 600, 2964)
-            self.p_list.append(self.p)
-            self.W = self.get_area(self.A, self.B,
-                                   down=self.A.x + self.params.r,
-                                   up=self.B.x - self.params.r) * 10
+            dp_dt = self.get_dp_dt(W=self.W,
+                                   Q_in=self.get_Q_in(),
+                                   Q_out=self.get_Q_out(),
+                                   dW_dt=self.dW_dt) * self.eps
 
-            self.dW_dt = (self.W - self.W_list[-1]) / (2 * self.eps)
-            self.W_list.append(self.W)
+            self.p = self.clamp(value=self.p + dp_dt,
+                                min_value=600,
+                                max_value=2964)
+
+            self.W = self.get_W(A=self.A,
+                                B=self.B,
+                                down=self.A.x + self.params.r,
+                                up=self.B.x - self.params.r)
+
+            self.dW_dt = self.W - self.w_array[idx - 1]
+            self.S_gap = (get_S_gap_jit(self.A.to_array(), self.params.h) +
+                          get_S_gap_jit(self.B.to_array(), self.params.h))
+
+            self.w_array[idx] = self.W
+            self.p_array[idx] = self.p
             ###################
 
-            # TODO: d2y_dt2
-            F_p, F_m = self.get_F_p(), self.get_F_m()
             V = self.get_cylinder_volume(self.A) + self.get_cylinder_volume(self.B)
-            F_a = self.get_F_a(V)
-            d2y_dt2 = self.get_d2y_dt2(F_p, F_m, F_a) * self.eps
-            ###################
+            d2y_dt2 = self.get_d2y_dt2(Fp=self.get_F_p(),
+                                       Fm=self.params.m * self.params.g,
+                                       Fa=self.get_F_a(V)) * self.eps
             self.y += d2y_dt2
-            self.y_list.append(self.y)
+            self.y_array[idx] = self.y
             ###################
 
-            # TODO: d2gamma_dt2
-            if 0 <= self.gamma % 360 <= 90:
-                self.B.y += d2y_dt2
-            else:
-                self.A.y += d2y_dt2
+            d2gamma_dt2 = self.get_d2gamma_d2t(Fa=self.get_F_a(V),
+                                               cos_a=self.get_cos_alpha(self.A.to_array())) * self.eps
 
-            # self.A.y += d2y_dt2
-            # self.B.y += d2y_dt2
+            # FIXME: нужно крутить точки
+            self.A.y += d2y_dt2
+            self.B.y += d2y_dt2
+            # #########
 
-            cos_a = self.get_cos_alpha(np.array(self.A.to_array()))
-            d2gamma_dt2 = self.get_d2gamma_d2t(F_a, cos_a) * self.eps
-            ###################
             self.gamma += d2gamma_dt2
-            self.gamma_list.append(self.gamma)
-            ###################
+            self.gamma_array[idx] = self.gamma
 
     def get_d2y_dt2(self,
                     Fp: int | float,
                     Fm: int | float,
                     Fa: int | float) -> float:
-        return (Fp + Fa - Fm) / self.params.m
+        return get_d2y_dt2_jit(Fp, Fa, Fm, self.params.m)
 
     def get_dp_dt(self,
                   W: int | float,
                   Q_in: int | float,
                   Q_out: float,
-                  dW_dt: int | float) -> float:
+                  dW_dt: int | float | Any) -> float:
         first_half = (self.params.n * self.params.p_a) / W
         second_half = Q_in - Q_out - dW_dt
         return first_half * second_half
@@ -147,30 +182,24 @@ class SystemOfEquations:
     def get_F_a(self, V: int | float) -> int | float:
         return self.params.rho * self.params.g * V
 
-    def get_F_m(self) -> int | float:
-        return self.params.m * self.params.g
-
     def get_Q_in(self) -> int | float:
-        a, b, c = self.params.a, self.params.b, self.params.c
-
-        D = b ** 2 - 4 * a * (c - self.p)
-        root1 = (-b - sqrt(D)) / (2 * a)
-        root2 = (-b + sqrt(D)) / (2 * a)
-        return max(root1, root2, key=lambda x: x.real).real
+        return get_Q_in_jit(self.params.a, self.params.b, self.params.c, self.p)
 
     @staticmethod
+    @njit(fastmath=True)
     def get_cos_alpha(v1: np.array,
                       v2: Optional[np.array] = None) -> float:
-        v2 = np.array([0, 1]) if v2 is None else v2
+        v2 = np.array([0, 1], dtype=np.float32) if v2 is None else v2
         dot_prod = np.dot(v1, v2)
         magnitude1, magnitude2 = np.linalg.norm(v1), np.linalg.norm(v2)
 
         return dot_prod / (magnitude1 * magnitude2)
 
     def get_Q_out(self) -> float:
-        return self.params.xi * np.sqrt(2 * self.p / self.params.rho) * self.S_gap
+        return get_Q_out_jit(self.params.xi, self.p, self.params.rho, self.S_gap)
 
     @staticmethod
+    @jit(fastmath=True)
     def clamp(value: int | float,
               min_value: int | float,
               max_value: int | float) -> int | float:
@@ -203,13 +232,13 @@ class SystemOfEquations:
             raise RuntimeError("Use .solve() method first")
 
         if max_elem is None:
-            max_elem = self.t_list.shape[0]
+            max_elem = self.t_array.shape[0]
 
-        y = self.y_list[:max_elem]
-        p = self.p_list[:max_elem]
-        gamma = self.gamma_list[:max_elem]
-        W = self.W_list[:max_elem]
-        t = self.t_list[:max_elem]
+        y = self.y_array[:max_elem]
+        p = self.p_array[:max_elem]
+        gamma = self.gamma_array[:max_elem]
+        W = self.w_array[:max_elem]
+        t = self.t_array[:max_elem]
 
         plt.figure(figsize=(18, 8))
         plt.subplot(2, 2, 1)
@@ -245,9 +274,9 @@ class SystemOfEquations:
 
 
 def main() -> None:
-    equations = SystemOfEquations(Parameters(h=2, r=1.1),
-                                  t_end=100,
-                                  eps=1e-3)
+    equations = SystemOfEquations(Parameters(h=1, r=0.9),
+                                  t_end=10,
+                                  eps=1e-4)
     print(equations)
     equations.solve()
     print(equations)

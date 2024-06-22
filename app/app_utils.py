@@ -12,7 +12,7 @@ class Parameters:
     I: float | int = field(default=250_000)  # Момент инерции Y
     l: float | int = field(default=3)  # Длина плеча
     xi: float | int = field(default=1)  # Коэффициент расхода
-    a: float | int = field(default=2.756287)  # 1-й параметр параболы P(Q)
+    a: float | int = field(default=-2.756287)  # 1-й параметр параболы P(Q)
     b: float | int = field(default=48.461925)  # 2-й параметр параболы P(Q)
     c: float | int = field(default=2770.846481)  # 3-й параметр параболы P(Q)
     k: float | int = field(default=0.7)  # Клиренс судна
